@@ -1,3 +1,5 @@
+#%%
+
 import os
 os.environ['CUDA_VISIBLE_DEVICES']='0'
 import numpy as np
@@ -7,7 +9,8 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 from transformers import (AutoTokenizer, AutoModelForSeq2SeqLM, Seq2SeqTrainer,
                           Seq2SeqTrainingArguments, DataCollatorForSeq2Seq)
-from datasets import load_metric
+# from datasets import load_metric
+import evaluate
 import torch
 
 class TextSummarizationDataset(Dataset):
@@ -57,16 +60,19 @@ class TextSummarization:
     def __init__(self, checkpoint="t5-small"):
         self.RANDOM_STATE = 42
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+        self.DATA_DIR = "D:/GWU/DATS-6312/project/data" # change to match local path
+        self.rouge = evaluate.load('rouge')
+        self.CHECKPOINT = checkpoint
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(self.CHECKPOINT).to(self.device)
+        
         """--------------------------------------------------------------------------------
         HyperParameters for Model
         --------------------------------------------------------------------------------"""
-        self.N_EPOCH = 20
-        self.BATCH_SIZE = 40
+        self.N_EPOCH = 2
+        self.BATCH_SIZE = 8
         self.LR = 1e-3
-        PREFETCH_FACTOR = 20
-        self.N_WORKERS = 20
-        self.CHECKPOINT = checkpoint
+        PREFETCH_FACTOR = 5
+        self.N_WORKERS = 2        
 
         self.GRADIENT_ACCUMULATION_STEPS = 2
         self.MAX_INPUT_LEN = 256
@@ -75,11 +81,15 @@ class TextSummarization:
         """--------------------------------------------------------------------------------
         Data Loading
         --------------------------------------------------------------------------------"""
+        #*****
+        print("\nload data...")
+        #***
+        
         # read individual csv files
-        train_df = pd.read_csv('data/train.csv')
-        val_df = pd.read_csv('data/validation.csv')
-        test_df = pd.read_csv('data/test.csv')
-
+        train_df = pd.read_csv(f'{self.DATA_DIR}/train.csv')
+        val_df = pd.read_csv(f'{self.DATA_DIR}/validation.csv')
+        test_df = pd.read_csv(f'{self.DATA_DIR}/test.csv')
+        
         """--------------------------------------------------------------------------------
         Remove unwanted columns
         --------------------------------------------------------------------------------"""
@@ -94,7 +104,11 @@ class TextSummarization:
         # rename two column names
         test_df = test_df.rename(columns={"article": "source", "highlights": "target"})
         test_df = test_df[['source', 'target']]
-
+        
+        #*****
+        print("\ndata frames created...")
+        #*****
+        
         """--------------------------------------------------------------------------------
         Torch Dataset
         --------------------------------------------------------------------------------"""
@@ -111,31 +125,46 @@ class TextSummarization:
                                                self.MAX_INPUT_LEN, self.MAX_OUTPUT_LEN)
         self.test_dataset = TextSummarizationDataset(test_df, self.tokenizer,
                                                 self.MAX_INPUT_LEN, self.MAX_OUTPUT_LEN)
-
+        
+        #########################################################
+        
+        # Sample of data for program testing
+        sample_idx_train = [i for i in range(500)]
+        sample_idx_eval = [i for i in range(250)]
+        self.train_sample_dataset = torch.utils.data.Subset(self.train_dataset, sample_idx_train)
+        self.val_sample_dataset = torch.utils.data.Subset(self.val_dataset, sample_idx_eval)
+        self.test_sample_dataset = torch.utils.data.Subset(self.test_dataset, sample_idx_eval)
+        
+        #*****
+        print("\ndata sets created...")
+        #*****
+        
+        #########################################################
+        
         """--------------------------------------------------------------------------------
         Evaluation Metric
         --------------------------------------------------------------------------------"""
-        # self.rouge = load_metric('rouge')
+        
 
-        # Define compute_metrics function
-    # def compute_metrics(self, eval_pred):
-    #     # Load the rouge metric
-    #     predictions, labels = eval_pred
-    #     decoded_pred = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
-    #     labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
-    #     decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
-    #
-    #     result = self.rouge.compute(predictions=decoded_pred, references=decoded_labels, use_stemmer=True)
-    #
-    #     prediction_lens = [np.count_nonzero(pred != self.tokenizer.pad_token_id) for pred in predictions]
-    #     result['gen_len'] = np.mean(prediction_lens)
-    #
-    #     # Access the mid F1 score for each rouge metric (rouge1, rouge2, and rougeL)
-    #     return {k: round(v, 4) for k, v in result.items()}
+    # Define compute_metrics function
+    def compute_metrics(self, eval_pred):
+        # Load the rouge metric
+        predictions, labels = eval_pred
+        decoded_pred = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
+        labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
+        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+    
+        result = self.rouge.compute(predictions=decoded_pred, references=decoded_labels, use_stemmer=True)
+    
+        prediction_lens = [np.count_nonzero(pred != self.tokenizer.pad_token_id) for pred in predictions]
+        result['gen_len'] = np.mean(prediction_lens)
+    
+        # Access the mid F1 score for each rouge metric (rouge1, rouge2, and rougeL)
+        return {k: round(v, 4) for k, v in result.items()}
 
     def build(self):
         
-        model = AutoModelForSeq2SeqLM.from_pretrained(self.CHECKPOINT).to(self.device)
+        # model = AutoModelForSeq2SeqLM.from_pretrained(self.CHECKPOINT).to(self.device)
         # Model and training parameters
         train_args = Seq2SeqTrainingArguments(
             output_dir='my_best_model',
@@ -160,41 +189,85 @@ class TextSummarization:
         )
 
         trainer = Seq2SeqTrainer(
-            model=model,
+            model=self.model,
             args=train_args,
-            train_dataset=self.train_dataset,
-            eval_dataset=self.val_dataset,
+            # train_dataset=self.train_dataset,
+            # eval_dataset=self.val_dataset,
+            #########################################################
+            # For program testing
+            train_dataset=self.train_sample_dataset,
+            eval_dataset=self.val_sample_dataset,
+            #########################################################
             tokenizer=self.tokenizer,
             data_collator=self.data_collator,
             # compute_metrics=self.compute_metrics,
         )
+
+        #*****
+        print("\nmodel and training sequence created...")
+        #***
         
         return trainer
     
     def fit(self, trainer):
+        #*****
+        print("\nbegin training...")
+        #***
         trainer.train()
 
     def test(self, trainer):
-        for i, batch in enumerate(self.test_dataset):
-            actual_summary = self.tokenizer.batch_decode(batch['labels'])
-            actual_summary = list(filter(lambda x: x!= "<pad>", actual_summary))
-            actual_summary = " ".join(actual_summary)
-            print(f"Actual summary of sample {i}:\n{actual_summary}")
+        #*****
+        print("\nbegin testing...\n")
+        #***
+        
+        summaries = []
+        # test_dataloader = DataLoader(self.test_dataset, batch_size=1, shuffle=False)
+        # for i, batch in enumerate(self.test_dataset):
+        #########################################################
+        # For program testing
+        test_dataloader = DataLoader(self.test_sample_dataset, batch_size=1, shuffle=False)
+        #for i, batch in enumerate(self.test_dataloader):
+        #########################################################
+            
+        for i,text in enumerate(test_dataloader):            
+            actual_summary = self.tokenizer.decode(text['labels'].detach().cpu().tolist()[0], skip_special_tokens=True)
+            # actual_summary = list(filter(lambda x: x!= "<pad>", actual_summary))
+            # actual_summary = " ".join(actual_summary)
+            # print(f"Actual summary of sample {i}:\n{actual_summary}")
+        
+            # pred_summary = trainer.predict(batch)
+            # pred_summary = self.tokenizer.batch_decode(pred_summary)
+            # pred_summary = list(filter(lambda x: x!= "<pad>", pred_summary))
+            # pred_summary = " ".join(pred_summary)
+            # print(f"Predicted summary of sample {i}:\n{pred_summary}")
+            
+            input = text['input_ids'].to(self.device)
+            output = self.model.generate(input, max_new_tokens=self.MAX_OUTPUT_LEN, do_sample=False)
+            decoded_output = self.tokenizer.decode(output[0], skip_special_tokens=True)
+            # summaries.append(decoded_output)
+            
+            summaries.append((actual_summary, decoded_output))
 
-            pred_summary = trainer.predict(batch)
-            pred_summary = self.tokenizer.batch_decode(pred_summary)
-            pred_summary = list(filter(lambda x: x!= "<pad>", pred_summary))
-            pred_summary = " ".join(pred_summary)
-            print(f"Predicted summary of sample {i}:\n{pred_summary}")
-
+            if i % 10 == 0:
+                print(f"{i}/{len(test_dataloader)} summarizations completed...")
+            
+        return summaries
 
 
 if __name__ == "__main__":
-    ts = TextSummarization(checkpoint="my_best_model/checkpoint-143500")
+    # checkpoint = "my_best_model/checkpoint-143500"
+    checkpoint = "t5-small"
+    ts = TextSummarization(checkpoint=checkpoint)
     trainer = ts.build()
-    # ts.fit(trainer)
-    ts.test(trainer)
+    ts.fit(trainer)
+    summaries = ts.test(trainer)
+
+    # View results
+    print("\nExample of First 10 Summaries Produced Compared to Original Highlights from Data\n")
+    for i in range(10):
+        print(f"{i}:\n\tOriginal Summary: {summaries[i][0]}\n\tProduced Summary: {summaries[i][1]}")
 
 
 
 
+# %%
