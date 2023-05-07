@@ -69,14 +69,14 @@ class TextSummarization:
         """--------------------------------------------------------------------------------
         HyperParameters for Model
         --------------------------------------------------------------------------------"""
-        self.N_EPOCH = 20
+        self.N_EPOCH = 60
         self.BATCH_SIZE = 30
         self.LR = 1e-3
         PREFETCH_FACTOR = 30
         self.N_WORKERS = 10
 
         self.GRADIENT_ACCUMULATION_STEPS = 1
-        self.MAX_INPUT_LEN = 1024
+        self.MAX_INPUT_LEN = 256
         self.MAX_OUTPUT_LEN = 128
 
         """--------------------------------------------------------------------------------
@@ -130,9 +130,9 @@ class TextSummarization:
         #########################################################
         
         # Sample of data for program testing
-        sample_idx_train = [i for i in range(500)]
+        sample_idx_train = [i for i in range(1000)]
         sample_idx_eval = [i for i in range(250)]
-        # self.train_sample_dataset = torch.utils.data.Subset(self.train_dataset, sample_idx_train)
+        self.train_sample_dataset = torch.utils.data.Subset(self.train_dataset, sample_idx_train)
         self.val_sample_dataset = torch.utils.data.Subset(self.val_dataset, sample_idx_eval)
         self.test_sample_dataset = torch.utils.data.Subset(self.test_dataset, sample_idx_eval)
         
