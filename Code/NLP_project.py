@@ -132,7 +132,7 @@ class TextSummarization:
         # Sample of data for program testing
         sample_idx_train = [i for i in range(500)]
         sample_idx_eval = [i for i in range(250)]
-        # self.train_sample_dataset = torch.utils.data.Subset(self.train_dataset, sample_idx_train)
+        self.train_sample_dataset = torch.utils.data.Subset(self.train_dataset, sample_idx_train)
         self.val_sample_dataset = torch.utils.data.Subset(self.val_dataset, sample_idx_eval)
         self.test_sample_dataset = torch.utils.data.Subset(self.test_dataset, sample_idx_eval)
         
@@ -223,11 +223,11 @@ class TextSummarization:
         #***
         
         summaries = []
-        # test_dataloader = DataLoader(self.test_dataset, batch_size=1, shuffle=False)
+        test_dataloader = DataLoader(self.test_dataset, batch_size=1, shuffle=False)
         # for i, batch in enumerate(self.test_dataset):
         #########################################################
         # For program testing
-        test_dataloader = DataLoader(self.test_sample_dataset, batch_size=1, shuffle=False)
+        # test_dataloader = DataLoader(self.test_sample_dataset, batch_size=1, shuffle=False)
         #for i, batch in enumerate(self.test_dataloader):
         #########################################################
             
