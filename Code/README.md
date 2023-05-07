@@ -1,60 +1,25 @@
 # Instructions for Downloading Data and Running the Code
 
 ## 1. Download data set from Kaggle
-###     a. Access the Kaggle page for [ASL Fingerspelling Images (RGB & Depth)](https://www.kaggle.com/datasets/mrgeislinger/asl-rgb-depth-fingerspelling-spelling-it-out) 
-###     b. Under the dataset section of the page, use the download button to download *dataset5* to your computer
-###     c. Unzip the downloaded files and move them to a desired location on your computer
+###     a. Access the Kaggle page for [CNN-Daily Mail News Text Summarization](https://www.kaggle.com/datasets/gowrishankarp/newspaper-text-summarization-cnn-dailymail) 
+###     b. use the "download" button on the top right of the page to download the data set to your computer and unzip the files.
+###     c. Unzip the download, there sould be three cvs files, test - train - validation.
+###     d. Place the three cvs files in the desired location on your computer.
 
 <br>
 
-## 2. Reformat the data to be used by the model
-###    a. Open up the *rearrange_files.py* code file
-###    b. On line 9, change the variable, *DATA_DIR*, to the location of where you saved the Kaggle data set on your pc
-###    c. For example, it may look like: *f"C:/my_data/archive/dataset5"*
-###    c. Run *rearrange_files.py*, it may take several minutes to complete
-###    d. After the script completes, you should see a new folder, *collated*, inside the *dataset5* folder
+## 2. Adjust data directory location
+### a. Open the *NLP_project.py* code file in the code directory
+### b. On line, 64, change the variable, *DATA_DIR*, to the location of the folder on your computer that contains the three cvs files
 
 <br>
 
-## 3. Train the Model
-### a. Open the *Group_Project_DL* code file
-### b. On line, 109, change the variable, *DATA_DIR*, to the location of the newly created *collated* folder
-### c. For example, it may look like: *f"C:/my_data/archive/dataset5/collated"*
-### d. On line, 118, change the variable, *self.filename*, to what you would like to name the produced model
-### d. On line, 121, change the variable, *self.SAVE_DIR*, to the location you would like to store the produced model
-### e. For example, it may look like *f"C:/my_data/saved_models/{self.filename}"*
-
-<br>
-
-## 4. Train the model
-### a. Open the *Group_Project_DL* code file and examine the code at lines 323-327
-### b. Ensure that lines 323, 324, and 325 are uncommented
-### c. This would look like: 
-    asl = ASLRecognition()
-    model = asl.model_def()
-    asl.fit(model)
-    # asl.test(model, used_saved=False)
-    # asl.test(model, used_saved=True)
-### d. Run the file
-
-<br>
-
-## 5. Test the model
-### a. Open the *Group_Project_DL* code file and examine the code at lines 323-327
-### b. Ensure that lines 323, 324, and 327 are uncommented and that line 325 is commented out
-### c. This would look like
-    asl = ASLRecognition()
-    model = asl.model_def()
-    # asl.fit(model)
-    # asl.test(model, used_saved=False)
-    asl.test(model, used_saved=True)
+## 4. Train and Test the model
+### a. Open the *NLP_project.py* code file in the code directory
+### b. Run the file
 
 <br>
 
 ## 6. Making personal changes to the model
--If you desire to make changes to and experiment with the model, you can find most of the **hyperparamters** from lines *107-122*  
--**Augmentation** transformations are at lines *138-145*  
--**Model architecture** is at lines *190-199*  
--The **optimization** type is on line *208*, along with **L2 regularization**  
--The **performance index** is on line *209*  
--**Early stopping** and **LR scheduling** details are from lines *214-220*  
+-If you desire to make changes to and experiment with the model, you can find most of the **hyperparamters** from lines *72-80*  
+-If you want to speed things up, you can work with a small sample of the data. To do this, go to trainer argument in the build function. Comment out lines **195-196**. Instead, uncomment lines **199-200**. In additional, navigate to the test function. Comment out line **226** and uncomment line **230**.
