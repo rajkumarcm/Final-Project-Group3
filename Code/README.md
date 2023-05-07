@@ -9,13 +9,13 @@
 <br>
 
 ## 2. Adjust data directory location
-### a. Open the *NLP_project.py* code file in the code directory
+### a. Open the *NLP_project.py* code file in the ***Code*** directory
 ### b. On line, 64, change the variable, *DATA_DIR*, to the location of the folder on your computer that contains the three cvs files
 
 <br>
 
 ## 4. Train and Test the model
-### a. Open the *NLP_project.py* code file in the code directory
+### a. Open the *NLP_project.py* ***Code*** file in the code directory
 ### b. Run the file
 
 <br>
