@@ -68,7 +68,7 @@ class TextSummarization:
         """--------------------------------------------------------------------------------
         HyperParameters for Model
         --------------------------------------------------------------------------------"""
-        self.N_EPOCH = 2
+        self.N_EPOCH = 1
         self.BATCH_SIZE = 8
         self.LR = 1e-3
         PREFETCH_FACTOR = 5
@@ -131,11 +131,19 @@ class TextSummarization:
         # Sample of data for program testing
         sample_idx_train = [i for i in range(500)]
         sample_idx_eval = [i for i in range(250)]
-        self.train_sample_dataset = torch.utils.data.Subset(self.train_dataset, sample_idx_train)
-        self.val_sample_dataset = torch.utils.data.Subset(self.val_dataset, sample_idx_eval)
-        self.test_sample_dataset = torch.utils.data.Subset(self.test_dataset, sample_idx_eval)
+        #self.train_sample_dataset = torch.utils.data.Subset(self.train_dataset, sample_idx_train)
+        #self.val_sample_dataset = torch.utils.data.Subset(self.val_dataset, sample_idx_eval)
+        #self.test_sample_dataset = torch.utils.data.Subset(self.test_dataset, sample_idx_eval)
+        
+        self.train_sample_dataset = TextSummarizationDataset(train_df.iloc[:500, :], self.tokenizer,
+                                                 self.MAX_INPUT_LEN, self.MAX_OUTPUT_LEN)
+        self.val_sample_dataset = TextSummarizationDataset(val_df.iloc[:250, :], self.tokenizer,
+                                               self.MAX_INPUT_LEN, self.MAX_OUTPUT_LEN)
+        self.test_sample_dataset = TextSummarizationDataset(test_df.iloc[:250, :], self.tokenizer,
+                                                self.MAX_INPUT_LEN, self.MAX_OUTPUT_LEN)
         
         #*****
+        print(f"\n{type(self.train_sample_dataset)}, {type(self.val_sample_dataset)}, {type(self.test_sample_dataset)}")
         print("\ndata sets created...")
         #*****
         
@@ -160,6 +168,7 @@ class TextSummarization:
         result['gen_len'] = np.mean(prediction_lens)
     
         # Access the mid F1 score for each rouge metric (rouge1, rouge2, and rougeL)
+        print(result)
         return {k: round(v, 4) for k, v in result.items()}
 
     def build(self):
@@ -185,7 +194,7 @@ class TextSummarization:
             bf16_full_eval=False,
             dataloader_drop_last=True,
             dataloader_num_workers=self.N_WORKERS,
-            include_inputs_for_metrics=True,
+            ##### include_inputs_for_metrics=True,
         )
 
         trainer = Seq2SeqTrainer(
@@ -200,7 +209,7 @@ class TextSummarization:
             #########################################################
             tokenizer=self.tokenizer,
             data_collator=self.data_collator,
-            # compute_metrics=self.compute_metrics,
+            compute_metrics=self.compute_metrics,
         )
 
         #*****
@@ -260,12 +269,12 @@ if __name__ == "__main__":
     ts = TextSummarization(checkpoint=checkpoint)
     trainer = ts.build()
     ts.fit(trainer)
-    summaries = ts.test(trainer)
-
+    # summaries = ts.test(trainer)
+    
     # View results
-    print("\nExample of First 10 Summaries Produced Compared to Original Highlights from Data\n")
-    for i in range(10):
-        print(f"{i}:\n\tOriginal Summary: {summaries[i][0]}\n\tProduced Summary: {summaries[i][1]}")
+    # print("\nExample of First 10 Summaries Produced Compared to Original Highlights from Data\n")
+    # for i in range(10):
+    #    print(f"{i}:\n\tOriginal Summary: {summaries[i][0]}\n\tProduced Summary: {summaries[i][1]}")
 
 
 
